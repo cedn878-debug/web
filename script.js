@@ -594,40 +594,56 @@
       return ok;
     }
 
-    // Form submit → Gmail Web Compose (funciona sin servidor)
-    form.addEventListener('submit', (e) => {
+    // Form submit → Web3Forms (funciona en HTTPS / GitHub Pages)
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!validate()) return;
 
-      const submitBtn  = document.getElementById('btn-manifest');
+      const submitBtn   = document.getElementById('btn-manifest');
       const originalHTML = submitBtn.innerHTML;
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span style="display:inline-block;animation:spinSlow 1s linear infinite">✦</span> Preparando tu mensaje...';
+      submitBtn.innerHTML = '<span style="display:inline-block;animation:spinSlow 1s linear infinite">✦</span> Enviando al universo...';
 
-      const nombre  = nameEl.value.trim();
-      const correo  = emailEl.value.trim();
-      const mensaje = textEl.value.trim();
+      // Limpiar error previo
+      const oldErr = document.getElementById('manifest-error');
+      if (oldErr) oldErr.remove();
 
-      // Cuerpo del email formateado
-      const cuerpo =
-        `✦ MANIFESTACIÓN POSITIVA ✦\n\n` +
-        `Nombre: ${nombre}\n` +
-        `Correo: ${correo}\n\n` +
-        `Mensaje al Universo:\n${mensaje}\n\n` +
-        `— Enviado desde Sentimiento Universal`;
+      try {
+        const payload = {
+          access_key: 'd98d127d-5ddd-41b3-b262-77728defdf9b',
+          subject:    '✦ Mensaje Positivo – Sentimiento Universal',
+          from_name:  'Sentimiento Universal',
+          name:       nameEl.value.trim(),
+          email:      emailEl.value.trim(),
+          message:    textEl.value.trim(),
+          botcheck:   ''
+        };
 
-      const asunto  = encodeURIComponent('✦ Mensaje Positivo – Sentimiento Universal');
-      const body    = encodeURIComponent(cuerpo);
-      const destino = 'conexaia.solutions@gmail.com';
+        const res    = await fetch('https://api.web3forms.com/submit', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body:    JSON.stringify(payload)
+        });
+        const result = await res.json();
 
-      // Abrir Gmail Web compose en pestaña nueva
-      const gmailURL = `https://mail.google.com/mail/?view=cm&fs=1&to=${destino}&su=${asunto}&body=${body}`;
-      setTimeout(() => {
-        window.open(gmailURL, '_blank', 'noopener');
-        // Mostrar éxito en la página
-        form.style.display = 'none';
-        if (successEl) successEl.classList.add('visible');
-      }, 800);
+        if (result.success) {
+          form.style.display = 'none';
+          if (successEl) successEl.classList.add('visible');
+        } else {
+          throw new Error(result.message || 'Error desconocido');
+        }
+
+      } catch (err) {
+        submitBtn.disabled  = false;
+        submitBtn.innerHTML = originalHTML;
+
+        const errEl = document.createElement('div');
+        errEl.id = 'manifest-error';
+        errEl.style.cssText = 'background:rgba(251,113,133,0.12);border:1px solid rgba(251,113,133,0.4);border-radius:12px;padding:14px 18px;margin-top:12px;font-size:0.82rem;color:#fca5a5;line-height:1.6;text-align:center;';
+        errEl.innerHTML = `<strong>⚠ No se pudo enviar</strong><br>${err.message}`;
+        submitBtn.parentNode.insertBefore(errEl, submitBtn.nextSibling);
+        setTimeout(() => errEl.remove(), 8000);
+      }
     });
 
     // Reset button
